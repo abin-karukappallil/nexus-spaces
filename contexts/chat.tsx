@@ -18,16 +18,11 @@ type ChatContextProps = {
   setMessage: React.Dispatch<React.SetStateAction<string>>;
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  title: string;
-  setTitle: React.Dispatch<React.SetStateAction<string>>;
-  streaming: boolean;
-  setStreaming: React.Dispatch<React.SetStateAction<boolean>>;
+  streaming: React.RefObject<boolean>;
   sidebarLoading: boolean;
   setSidebarLoading: React.Dispatch<React.SetStateAction<boolean>>;
   messageLoading: boolean;
   setMessageLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  abortControllerRef: React.RefObject<AbortController | null>;
-  stopControllerRef: React.RefObject<AbortController | null>;
   handleNewChat: () => Promise<void>;
   handleDeleteChat: (convId: string) => Promise<void>;
   handleKeyDown: (e: React.KeyboardEvent) => void;
@@ -54,14 +49,12 @@ export default function ChatContextProvider({ children }: { children: React.Reac
   const [conversation, setConversation] = useState<Conversation | null>({} as Conversation);
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [title, setTitle] = useState("");
-  const [streaming, setStreaming] = useState<boolean>(false);
+  const streaming = useRef(false);
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [messageLoading, setMessageLoading] = useState(true);
   const textareaRef = useRef<HTMLInputElement>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const stopControllerRef = useRef<AbortController | null>(null);
 
   const updateConversationList = async () => {
     const res = await (await fetchAllConversation(user.id)).json();
@@ -69,7 +62,6 @@ export default function ChatContextProvider({ children }: { children: React.Reac
       const convList = res.data;
       convList.sort((a: ConversationMetadata, b: ConversationMetadata) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setConversationList(convList);
-      return res.data;
     } else {
       throw new Error("Failed to fetch conversations");
     }
@@ -155,7 +147,6 @@ export default function ChatContextProvider({ children }: { children: React.Reac
       return;
     }
     abortControllerRef.current = new AbortController();
-    stopControllerRef.current = new AbortController();
     const chatId = `user-${Date.now().toString()}`;
     const userMessage: Message = {
       id: chatId,
@@ -164,7 +155,7 @@ export default function ChatContextProvider({ children }: { children: React.Reac
     };
 
     updateConversation(userMessage);
-    const response = sendMessage(selectedConversation, chatId, message, files, stopControllerRef.current);
+    const response = sendMessage(selectedConversation, chatId, message, files);
     setMessage("");
     setFiles([]);
 
@@ -179,7 +170,7 @@ export default function ChatContextProvider({ children }: { children: React.Reac
             isUser: false
           };
           updateConversation(assistantMessage);
-          setStreaming(true);
+          streaming.current = true;
         } else {
           toast.error("Internal server error");
         }
@@ -187,18 +178,15 @@ export default function ChatContextProvider({ children }: { children: React.Reac
           break;
         }
       }
-      setStreaming(false);
+      streaming.current = false;
     } catch (error) {
       console.error('Error processing response:', error);
     }
 
     if (!conversationList[0].title.updated) {
-      const convList = await updateConversationList();
-      setTitle(convList[0].title.text);
+      updateConversationList();
     }
     abortControllerRef.current = null;
-    stopControllerRef.current = null;
-    focusTextarea();
   };
 
   useEffect(() => {
@@ -208,14 +196,12 @@ export default function ChatContextProvider({ children }: { children: React.Reac
 
   useEffect(() => {
     setConversation(null);
-    setTitle("");
     abortControllerRef.current?.abort();
     conversationList.forEach(async (conv: any) => {
       if (conv.id === selectedConversation) {
         const res = await (await fetchConversation(conv.id)).json();
         if (res.success) {
           setConversation(res.data);
-          setTitle(res.data.title.text);
           if (selectedConversation !== "") setMessageLoading(true);
         }
       }
@@ -237,16 +223,11 @@ export default function ChatContextProvider({ children }: { children: React.Reac
         setMessage,
         files,
         setFiles,
-        title,
-        setTitle,
         streaming,
-        setStreaming,
         sidebarLoading,
         setSidebarLoading,
         messageLoading,
         setMessageLoading,
-        abortControllerRef,
-        stopControllerRef,
         handleNewChat,
         handleDeleteChat,
         handleKeyDown,

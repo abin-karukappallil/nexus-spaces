@@ -16,7 +16,6 @@ export function ChatMessages() {
     setSelectedConversation,
     conversation,
     setConversation,
-    setTitle,
     messageLoading,
     setMessageLoading,
   } = useChatContext();
@@ -26,7 +25,6 @@ export function ChatMessages() {
       const res = await (await fetchConversation(id)).json();
       if (res.success) {
         setConversation(res.data);
-        setTitle(res.data.title.text);
         setTimeout(() => {
           setMessageLoading(false);
         }, 500);
@@ -45,7 +43,7 @@ export function ChatMessages() {
   return (
     <>
       {conversation && conversation.messages?.length > 0 && messageLoading ? (
-        <div className="flex flex-col-reverse h-full p-[5%] items-center gap-4 md:gap-0 mb-4 md:mb-0 overflow-y-scroll scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <div className="flex flex-col-reverse h-full p-[5%] items-center overflow-y-auto scroller gap-4 md:gap-0 mb-4 md:mb-0">
           <div className="flex flex-row w-full max-w-[700px] gap-2 md:gap-4">
             <Skeleton className="bg-gray-600 w-[50px] h-[50px] rounded-full" />
             <div className="w-[80%] space-y-3">
@@ -62,7 +60,6 @@ export function ChatMessages() {
               <Skeleton className="bg-gray-600 h-[2vh] w-[90%] ml-[10%]" />
               <Skeleton className="bg-gray-600 h-[2vh] w-[90%] ml-[10%]" />
               <Skeleton className="bg-gray-600 h-[2vh] w-[80%] ml-[20%]" />
-              <Skeleton className="bg-gray-600 h-[2vh] w-[75%] ml-[25%]" />
             </div>
             <Skeleton className="bg-gray-600 w-[50px] h-[50px] rounded-full" />
           </div>
@@ -72,13 +69,12 @@ export function ChatMessages() {
               <Skeleton className="bg-gray-600 h-[2vh] w-[90%]" />
               <Skeleton className="bg-gray-600 h-[2vh] w-[80%]" />
               <Skeleton className="bg-gray-600 h-[2vh] w-[85%]" />
-              <Skeleton className="bg-gray-600 h-[2vh] w-[75%]" />
               <Skeleton className="bg-gray-600 h-[2vh] w-[70%]" />
             </div>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col-reverse gap-4 h-full p-4 md:px-16 items-center overflow-y-scroll scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <div className="flex flex-col-reverse gap-4 h-full p-4 items-center overflow-y-auto scroller">
           {conversation?.messages?.toReversed().map((chatMessage) => (
             <div
               className={`flex flex-col w-full max-w-[700px] ${chatMessage.isUser ? 'items-end' : ''}`}
